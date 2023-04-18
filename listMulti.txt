@@ -1,0 +1,6 @@
+Foo, Boo
+bar, barr
+ex, eg
+am, this
+pl, that
+foooo, food
