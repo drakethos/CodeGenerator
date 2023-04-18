@@ -3,6 +3,22 @@ import pyperclip
 import io
 import argparse
 
+listfile = "list.txt"
+exclude_file = ""
+datasource = ""
+multi = ""
+numbers = "1"
+pData = ""
+add_line = ""
+new_line = "\n"
+out = ""
+onlynum = ""
+inc = ""
+seperate = ""
+header = []
+footer = []
+
+
 def parser_hook(text):
     parsed_text = []
     for line in text:
@@ -10,7 +26,7 @@ def parser_hook(text):
             parsed_text.append(include(line))
 
         if not ("#" in line):
-                parsed_text.append(line)
+            parsed_text.append(line)
 
     return ''.join(parsed_text)
 
@@ -118,6 +134,54 @@ def get_end_data(line):
     return name
 
 
+def getHeader(text):
+    global header
+    # open and close for the header
+    hdrO = '<$header>'
+    hdrC = '</$header>'
+    # The index of open Header
+    startF = text.find(hdrO)
+    # Index of Close Header
+    endF = text.find(hdrC)
+    # Index of end of Open Header
+    startL = startF + len(hdrO)
+    # Index of End of Close Header
+    endL = endF + len(hdrC)
+    # The entire text including opening and closing tags
+    hdr = text[startF:endL]
+    # Set the header to the actual text between tags
+    header = text[startL:endF]
+
+    # Remove header text
+    newText = text.replace(hdr, '')
+
+    return newText
+
+
+def getFooter(text):
+    global footer
+    # open and close for the Footer
+    ftrO = '<$footer>'
+    ftrC = '</$footer>'
+    # The index of open footer
+    startF = text.find(ftrO)
+    # Index of Close footer
+    endF = text.find(ftrC)
+    # Index of end of Open footer
+    startL = startF + len(ftrO)
+    # Index of End of Close footer
+    endL = endF + len(ftrC)
+    # The entire text including opening and closing tags
+    ftr = text[startF:endL]
+    # Set the footer to the actual text between tags
+    footer = text[startL:endF]
+
+    # Remove footer text
+    newText = text.replace(ftr, '')
+
+    return newText
+
+
 def gen_File_Arg(args):
     listfile = args.file
     exclude_file = args.exclude
@@ -138,13 +202,13 @@ def gen_File_Arg(args):
 
     data = open_file_template(datasource)
     data = parser_hook(data)
-    newdata = data
+    data = getHeader(data)
+    data = getFooter(data)
+    newData = data
     newlines = ""
     numlist = numbers
     if (add_line):
         new_line += "\n"
-
-
 
     if not onlynum:
         if listfile:
@@ -156,13 +220,13 @@ def gen_File_Arg(args):
             print("Open from Clipboard")
 
         for line in getlines:
-            # verify it isnt blank or contains a comment
-            if (line and line.strip()) and not("#" in line):
+            # verify it isn't blank or contains a comment
+            if (line and line.strip()) and not ("#" in line):
 
                 if exclude_file:
                     exclude_lines = open_file_list(exclude_file)
                     adjustedLine = line.split('/')
-                    if adjustedLine[len(adjustedLine)-1] in exclude_lines:
+                    if adjustedLine[len(adjustedLine) - 1] in exclude_lines:
                         continue
 
                 if multi:
@@ -170,7 +234,6 @@ def gen_File_Arg(args):
 
                 else:
                     newdata = single_data(data, line)
-
 
                 if pData:
                     i = 1
@@ -192,6 +255,11 @@ def gen_File_Arg(args):
         # for x in range(int(onlynum)):
         newdata = gen_number(numbers, data, onlynum, inc)
         newlines += newdata
+
+    fulltext = header + newlines
+    fulltext += footer
+    newlines = fulltext
+
     if listfile:
         fileout = listfile + ".out"
         if out:
