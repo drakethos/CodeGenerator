@@ -12,7 +12,7 @@ Parameters / arguments:
     will pull "Mylist.txt" and use each line to wrap the template text from "myTemplate.txt" and output as Mylist.txt.out
     not supplying file with this flag will default to clipboard as source and destination.
 
---multi -m : Allows a supplied list to have multiple items per line deliminated by | each line will be parsed by the
+--multi -m : Allows a supplied list to have multiple items per line delineated by | each line will be parsed by the
     template as $data1, $data2, ... $dataN , when not supplied template will be interpreted as $data
 
 --out -o : sets a specific name for output file, otherwise will use the name of the inputfile + .out
@@ -31,8 +31,8 @@ CodeGen.py "template.txt"
 or other arguments: CodeGen.py "template.txt" -l -n "1 3 4"
 
 
-Example uses: XML1-, when you need to create multiple products where the only variance is the sku, name, and document number
-AV- when you have several files to make into includes: have a list of file1, file2 ,file3 ... simply write the list in the .test where you want it.
+Example uses: XML-, when you need to create multiple items in a large XML1 where the only variance is the sku, name, and document number
+Test Automation- when you have several files to make into includes: have a list of file1, file2 ,file3 ... simply write the list in the .test where you want it.
 supply source file with: <include path="$data"/>
 copy run CodeGen and paste a list of <include path="file1"/> .. <include path="fileX"/>
 

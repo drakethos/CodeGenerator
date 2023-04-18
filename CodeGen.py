@@ -1,13 +1,8 @@
-# This is a sample Python script.
-
 import string
 import pyperclip
 import io
 import argparse
 
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 def parser_hook(text):
     parsed_text = []
     for line in text:
@@ -208,9 +203,6 @@ def gen_File_Arg(args):
 
 
 if __name__ == '__main__':
-    ##file = 'test.txt'
-    ##remove_file(file + 'out')
-    ##open_file_change(file)
     # total arguments
     parser = argparse.ArgumentParser("Code Generator")
     parser.add_argument("source", help="File containing data to surround your text list")
@@ -239,4 +231,3 @@ if __name__ == '__main__':
         print("Using clipboard")
 
     gen_File_Arg(args)
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
