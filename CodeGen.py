@@ -1,3 +1,4 @@
+import copy
 import string
 import pyperclip
 import io
@@ -10,13 +11,47 @@ multi = ""
 numbers = "1"
 pData = ""
 add_line = ""
-new_line = "\n"
+new_line = ""
 out = ""
 onlynum = ""
 inc = ""
 seperate = ""
 header = []
 footer = []
+
+
+def initializeGlobals(args):
+    global listfile
+    global exclude_file
+    global datasource
+    global multi
+    global numbers
+    global pData
+    global add_line
+    global new_line
+    global out
+    global onlynum
+    global inc
+    global seperate
+    global header
+    global footer
+
+    listfile = args.file
+    exclude_file = args.exclude
+    datasource = args.source
+    multi = args.multi
+    numbers = args.number
+    pData = args.data
+    add_line = args.line
+    new_line = ""
+    out = args.out
+    onlynum = args.onlynum
+    inc = args.inc
+    seperate = args.seperate
+    if add_line:
+        new_line += "\n"
+        print("new line added")
+    print(new_line)
 
 
 def parser_hook(text):
@@ -88,7 +123,7 @@ def gen_number(numlist, data, loop, inc):
     newlist = ""
     for i in range(loop):
         getline = gen_num(numlist, data, inc)
-        newlist += getline + "\n"
+        newlist += getline + "new_line"
 
     return newlist
 
@@ -139,23 +174,28 @@ def getHeader(text):
     # open and close for the header
     hdrO = '<$header>'
     hdrC = '</$header>'
-    # The index of open Header
+    # The indexes of the start and end of header tags
     startF = text.find(hdrO)
-    # Index of Close Header
     endF = text.find(hdrC)
-    # Index of end of Open Header
     startL = startF + len(hdrO)
-    # Index of End of Close Header
     endL = endF + len(hdrC)
+    nl = 0
     # The entire text including opening and closing tags
-    hdr = text[startF:endL]
+    if '\n' in text[endL:endL + 1]:
+        nl = 1
+
+    hdr = text[startF:endL + nl]
     # Set the header to the actual text between tags
-    header = text[startL:endF]
+
+    nl = 0
+
+    if '\n' in text[startL:endF]:
+        nl = 1
+
+    header = text[startL + nl:endF]
 
     # Remove header text
-    newText = text.replace(hdr, '')
-
-    return newText
+    return text.replace(hdr, '')
 
 
 def getFooter(text):
@@ -163,61 +203,42 @@ def getFooter(text):
     # open and close for the Footer
     ftrO = '<$footer>'
     ftrC = '</$footer>'
-    # The index of open footer
+    # indexes of start and end of footer tags
     startF = text.find(ftrO)
-    # Index of Close footer
     endF = text.find(ftrC)
-    # Index of end of Open footer
     startL = startF + len(ftrO)
-    # Index of End of Close footer
     endL = endF + len(ftrC)
+
+    nl = 0
     # The entire text including opening and closing tags
-    ftr = text[startF:endL]
+    if '\n' in text[endL:endL + 1]:
+        nl = 1
+
+    ftr = text[startF:endL + nl]
     # Set the footer to the actual text between tags
-    footer = text[startL:endF]
+
+    nl = 0
+
+    if '\n' in text[startL:endF]:
+        nl = 1
+    footer = text[startL + nl:endF]
 
     # Remove footer text
-    newText = text.replace(ftr, '')
-
-    return newText
+    return text.replace(ftr, '')
 
 
-def gen_File_Arg(args):
-    listfile = args.file
-    exclude_file = args.exclude
-    datasource = args.source
-    multi = args.multi
-    numbers = args.number
-    pData = args.data
-    add_line = args.line
-    new_line = "\n"
-    out = args.out
-    onlynum = args.onlynum
-    inc = args.inc
-    seperate = args.seperate
-
-    if not inc:
-        inc = 1
-        print("inc default:")
-
-    data = open_file_template(datasource)
-    data = parser_hook(data)
-    data = getHeader(data)
-    data = getFooter(data)
-    newData = data
+def generateCode(data):
     newlines = ""
-    numlist = numbers
-    if (add_line):
-        new_line += "\n"
 
     if not onlynum:
         if listfile:
             getlines = open_file_list(listfile)
-            print("Open File")
 
         else:
             getlines = clip_to_list()
-            print("Open from Clipboard")
+
+        # make a single deep copy of numbers to prevent reference
+        tempNumList = copy.copy(numbers)
 
         for line in getlines:
             # verify it isn't blank or contains a comment
@@ -242,8 +263,8 @@ def gen_File_Arg(args):
                         repData = newdata.replace(rep, p)
                         newdata = repData
 
-                if numbers:
-                    newdata = gen_num(numlist, newdata, inc)
+                if tempNumList:
+                    newdata = gen_num(tempNumList, newdata, inc)
 
                 if seperate:
                     path = get_data_path(line)
@@ -256,8 +277,70 @@ def gen_File_Arg(args):
         newdata = gen_number(numbers, data, onlynum, inc)
         newlines += newdata
 
-    fulltext = header + newlines
-    fulltext += footer
+    return newlines
+
+
+def parseBreak(data):
+    lines = ""
+    # We will keep updating data until there are no more breaks
+    dataToParse = data
+    breakSection = ""
+    brk = "$break$"
+
+    while brk in dataToParse:
+        #
+        # nl = 0
+        # # The entire text including opening and closing tags
+        # if '\n' in text[endL:endL + 1]:
+        #     nl = 1
+        #
+        # ftr = text[startF:endL + nl]
+        # # Set the footer to the actual text between tags
+        #
+        # nl = 0
+        #
+        # if '\n' in text[startL:endF]:
+        #     nl = 1
+        # footer = text[startL + nl:endF]
+
+
+        # find the start and stop of break
+        brkF = dataToParse.find(brk)
+        brkL = brkF + len(brk)
+        # define the current break section, all text up to start of break
+        breakSection = dataToParse[0:brkF]
+
+        # update our list to include the breaksection (without tags)
+        lines += generateCode(breakSection)
+
+        # data will be updated to hold what needs to be still parsed
+        nl = 0
+
+        if '\n' in dataToParse[brkL:brkL+1]:
+             nl = 1
+        dataToParse = dataToParse[brkL+nl:len(dataToParse)]
+
+    return lines
+
+
+
+
+def gen_File_Arg(args):
+    initializeGlobals(args)
+
+    data = open_file_template(datasource)
+    data = parser_hook(data)
+    data = getHeader(data)
+    data = getFooter(data)
+    if "$break$" in data:
+        # loop for each time and keep generating
+        newlines = parseBreak(data)
+
+    else:
+        newlines = generateCode(data)
+
+    fulltext = header + str(newlines) + footer
+
     newlines = fulltext
 
     if listfile:

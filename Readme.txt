@@ -44,6 +44,16 @@ $data1, $data2 .. $dataN see --multi flag
 $n1, $n2, $n3 ... - when --numbers is set, allows incrementing numbers to be replaced. Good for xml1s where multiple
 numbers may increment. each number can start from a different number.
 
+$break$
+requires at the start and end of the section at minimum a file should have 2 breaks. A break will treat a section as a new file and restart the list, and
+numbering. This allows repetitive but slightly different changes
+
+<$header> ... </$header>
+text between this will be parsed once and only once this allows for parts that will not be looped
+
+<$footer> ... </$footer>
+text between this is parsed only once to be at end of file. Does not get looped.
+
 EX Template:
 my.tmpl
 
