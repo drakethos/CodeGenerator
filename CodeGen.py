@@ -3,11 +3,11 @@ import string
 import pyperclip
 import io
 import argparse
+import configparser
 
 listfile = "list.txt"
 exclude_file = ""
 datasource = ""
-multi = ""
 numbers = "1"
 pData = ""
 add_line = ""
@@ -24,7 +24,6 @@ def initializeGlobals(args):
     global listfile
     global exclude_file
     global datasource
-    global multi
     global numbers
     global pData
     global add_line
@@ -35,23 +34,52 @@ def initializeGlobals(args):
     global seperate
     global header
     global footer
+    global ext
+    global delim
+
+    # get configs, we will set values from either args or config
+    cfg = read_ini("config.ini", args.cfg)
 
     listfile = args.file
     exclude_file = args.exclude
     datasource = args.source
-    multi = args.multi
-    numbers = args.number
+    #nm = []
+    #nm.append(cfg.getint("start_num"))
+    nm = stringToIntList(cfg.get("start_num"))
+    numbers = getCfg(args.number, nm)
+    print(numbers)
     pData = args.data
-    add_line = args.line
-    new_line = ""
-    out = args.out
+    add_line = getCfg(args.line, cfg.getboolean("addline"))
+    new_line = "\n" if add_line else ""
+    ext = cfg.get("DefaultExt")
+    out = getCfg(args.out, cfg.get("defaultname") + ext)
     onlynum = args.onlynum
-    inc = args.inc
+    inc = getCfg(args.inc, cfg.getint("numinc"))
     seperate = args.seperate
-    if add_line:
-        new_line += "\n"
-        print("new line added")
-    print(new_line)
+    delim = cfg.get("data_delim")
+    # Get defaults from config, if values are not set we will use these:
+    inc = getCfg(inc, int(cfg.get("numinc")))
+
+
+def stringToIntList(text):
+    return text.split(',')
+
+
+def read_ini(file, section):
+    config = configparser.ConfigParser()
+    config.read(file)
+    # for section in config.sections():
+    # print(section)
+    #   for key in config[section]:
+    # print((key, config[section][key]))
+    #return config.defaults()
+    return config[section]
+
+
+def getCfg(value, config):
+    if value:
+        return value
+    return config
 
 
 def parser_hook(text):
@@ -109,7 +137,7 @@ def open_file_template(fname):
 def gen_num(numlist, data, inc):
     newdata = data
     for i in range(len(numlist)):
-        x = numlist[i]
+        x = int(numlist[i])
         xstr = str(x)
         x += inc
         numlist[i] = x
@@ -129,7 +157,7 @@ def gen_number(numlist, data, loop, inc):
 
 
 def multi_data(data, list):
-    lines = list.split("|")
+    lines = list.split(delim)
     i = 1
     curData = data
     for ln in lines:
@@ -227,6 +255,49 @@ def getFooter(text):
     return text.replace(ftr, '')
 
 
+def createCode(getlines, data):
+    # make a single deep copy of numbers to prevent reference
+    tempNumList = copy.copy(numbers)
+    multi = ""
+    newlines = ""
+
+    if delim in getlines[0]:
+        multi = "true"
+
+    for line in getlines:
+        # verify it isn't blank or contains a comment
+        if (line and line.strip()) and not ("#" in line):
+
+            if exclude_file:
+                exclude_lines = open_file_list(exclude_file)
+                adjustedLine = line.split('/')
+                if adjustedLine[len(adjustedLine) - 1] in exclude_lines:
+                    continue
+
+            if multi:
+                newdata = multi_data(data, line)
+
+            else:
+                newdata = single_data(data, line)
+
+            if pData:
+                i = 1
+                for p in pData:
+                    rep = '$p' + str(i)
+                    repData = newdata.replace(rep, p)
+                    newdata = repData
+
+            if tempNumList:
+                newdata = gen_num(tempNumList, newdata, inc)
+
+            if seperate:
+                path = get_data_path(line)
+                filepath = out + path
+                outfile(filepath, newdata)
+            newlines += newdata + new_line
+    return newlines
+
+
 def generateCode(data):
     newlines = ""
 
@@ -237,40 +308,7 @@ def generateCode(data):
         else:
             getlines = clip_to_list()
 
-        # make a single deep copy of numbers to prevent reference
-        tempNumList = copy.copy(numbers)
-
-        for line in getlines:
-            # verify it isn't blank or contains a comment
-            if (line and line.strip()) and not ("#" in line):
-
-                if exclude_file:
-                    exclude_lines = open_file_list(exclude_file)
-                    adjustedLine = line.split('/')
-                    if adjustedLine[len(adjustedLine) - 1] in exclude_lines:
-                        continue
-
-                if multi:
-                    newdata = multi_data(data, line)
-
-                else:
-                    newdata = single_data(data, line)
-
-                if pData:
-                    i = 1
-                    for p in pData:
-                        rep = '$p' + str(i)
-                        repData = newdata.replace(rep, p)
-                        newdata = repData
-
-                if tempNumList:
-                    newdata = gen_num(tempNumList, newdata, inc)
-
-                if seperate:
-                    path = get_data_path(line)
-                    filepath = out + path
-                    outfile(filepath, newdata)
-                newlines += newdata + new_line
+        newlines = createCode(getlines, data)
 
     else:
         # for x in range(int(onlynum)):
@@ -288,21 +326,6 @@ def parseBreak(data):
     brk = "$break$"
 
     while brk in dataToParse:
-        #
-        # nl = 0
-        # # The entire text including opening and closing tags
-        # if '\n' in text[endL:endL + 1]:
-        #     nl = 1
-        #
-        # ftr = text[startF:endL + nl]
-        # # Set the footer to the actual text between tags
-        #
-        # nl = 0
-        #
-        # if '\n' in text[startL:endF]:
-        #     nl = 1
-        # footer = text[startL + nl:endF]
-
 
         # find the start and stop of break
         brkF = dataToParse.find(brk)
@@ -316,13 +339,11 @@ def parseBreak(data):
         # data will be updated to hold what needs to be still parsed
         nl = 0
 
-        if '\n' in dataToParse[brkL:brkL+1]:
-             nl = 1
-        dataToParse = dataToParse[brkL+nl:len(dataToParse)]
+        if '\n' in dataToParse[brkL:brkL + 1]:
+            nl = 1
+        dataToParse = dataToParse[brkL + nl:len(dataToParse)]
 
     return lines
-
-
 
 
 def gen_File_Arg(args):
@@ -344,7 +365,7 @@ def gen_File_Arg(args):
     newlines = fulltext
 
     if listfile:
-        fileout = listfile + ".out"
+        fileout = listfile + ext
         if out:
             fileout = out
         if not seperate:
@@ -359,24 +380,22 @@ if __name__ == '__main__':
     parser.add_argument("source", help="File containing data to surround your text list")
     parser.add_argument("-f", "--file", help="gets input from a file then outputs to a file")
     parser.add_argument("-e", "--exclude", help="gets a list from file to exclude items from the first list/clipboard")
-    parser.add_argument("-m", "--multi", help="Splits input list into multiple delimitated items", action="store_true")
     parser.add_argument("-s", "--seperate", help="output into seperate files  expects $data1 to be path",
                         action="store_true")
     parser.add_argument("-o", "--out", help="sets the name of the output file")
-    parser.add_argument("-n", "--number", nargs="*", type=int, help="Increments number, with $n1, $n2 starting num",
-                        default=0)
+    parser.add_argument("-n", "--number", nargs="*", type=int, help="Increments number, with $n1, $n2 starting num")
     parser.add_argument("-d", "--data", nargs="*", type=str, help="Additional data: $p1, $p2 ...")
-    parser.add_argument("-i", "--inc", type=int, help="Custom increment for numbers default is 1:", default=1)
+    parser.add_argument("-i", "--inc", type=int, help="Custom increment for numbers default is 1:")
     parser.add_argument("--onlynum", type=int, help="uses no source, instead only increments numbers")
     parser.add_argument("-l", "--line", help="Adds a new line after every item.", action="store_true")
+    parser.add_argument("-c", "--cfg", help="Specifies a section to use in cfg for defaults, default is main. others "
+                                            "av xml", default="main")
     args = parser.parse_args()
 
     if args.file:
         print("Using your file: {} , source is {}, numbers are {}".format(args.file, args.source, args.number))
     if args.line:
         print("Adding new line after each item.")
-    if args.multi:
-        print("Splitting input into deliminated items.")
 
     elif not args.file:
         print("Using clipboard")
