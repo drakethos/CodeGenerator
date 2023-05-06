@@ -47,7 +47,6 @@ def initializeGlobals(args):
     #nm.append(cfg.getint("start_num"))
     nm = stringToIntList(cfg.get("start_num"))
     numbers = getCfg(args.number, nm)
-    print(numbers)
     pData = args.data
     add_line = getCfg(args.line, cfg.getboolean("addline"))
     new_line = "\n" if add_line else ""
@@ -68,11 +67,6 @@ def stringToIntList(text):
 def read_ini(file, section):
     config = configparser.ConfigParser()
     config.read(file)
-    # for section in config.sections():
-    # print(section)
-    #   for key in config[section]:
-    # print((key, config[section][key]))
-    #return config.defaults()
     return config[section]
 
 
@@ -197,16 +191,16 @@ def get_end_data(line):
     return name
 
 
-def getHeader(text):
-    global header
+def getFixedSection(text, tag, end_tag):
+
     # open and close for the header
-    hdrO = '<$header>'
-    hdrC = '</$header>'
+    tagO = '<$' + tag + '>'
+    tagC = '</$' + tag + '>'
     # The indexes of the start and end of header tags
-    startF = text.find(hdrO)
-    endF = text.find(hdrC)
-    startL = startF + len(hdrO)
-    endL = endF + len(hdrC)
+    startF = text.find(tagO)
+    endF = text.find(tagC)
+    startL = startF + len(tagO)
+    endL = endF + len(tagC)
     nl = 0
     # The entire text including opening and closing tags
     if '\n' in text[endL:endL + 1]:
@@ -220,39 +214,25 @@ def getHeader(text):
     if '\n' in text[startL:endF]:
         nl = 1
 
-    header = text[startL + nl:endF]
+    section = text[startL + nl:endF]
 
     # Remove header text
-    return text.replace(hdr, '')
+    return text.replace(hdr, ''), section
+
+
+def getHeader(text):
+    global header
+    # open and close for the header
+    get_header = getFixedSection(text, 'header')
+    header = get_header[1]
+    return get_header[0]
 
 
 def getFooter(text):
     global footer
-    # open and close for the Footer
-    ftrO = '<$footer>'
-    ftrC = '</$footer>'
-    # indexes of start and end of footer tags
-    startF = text.find(ftrO)
-    endF = text.find(ftrC)
-    startL = startF + len(ftrO)
-    endL = endF + len(ftrC)
-
-    nl = 0
-    # The entire text including opening and closing tags
-    if '\n' in text[endL:endL + 1]:
-        nl = 1
-
-    ftr = text[startF:endL + nl]
-    # Set the footer to the actual text between tags
-
-    nl = 0
-
-    if '\n' in text[startL:endF]:
-        nl = 1
-    footer = text[startL + nl:endF]
-
-    # Remove footer text
-    return text.replace(ftr, '')
+    get_footer = getFixedSection(text, 'footer')
+    footer = get_footer[1]
+    return get_footer[0]
 
 
 def createCode(getlines, data):
