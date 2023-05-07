@@ -14,10 +14,9 @@ Version 1.0.1
    - Add config file to allow several settings
    - removed unused params
    - optimized multi-line to auto detect and not use param
+Version 1.0.2
+   - Clean up and optimization around header and footer code.
+   - Added config file
 ## Todo:
-**Cleanup**: technical refactoring several reused items into their own functions for better reusibility and cleaner code.
-Optimization around break and footer header could be done.
- - Add config file to allow several settings
-   - default template folder
-   - default output folder
-   - default settings (param line values)
+   - Improve the way default template works
+   - Need better template options
