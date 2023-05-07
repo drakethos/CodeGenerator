@@ -36,15 +36,17 @@ def initializeGlobals(args):
     global footer
     global ext
     global delim
+    global template
 
     # get configs, we will set values from either args or config
     cfg = read_ini("config.ini", args.cfg)
 
     listfile = args.file
     exclude_file = args.exclude
-    datasource = args.source
-    #nm = []
-    #nm.append(cfg.getint("start_num"))
+    if not template:
+        datasource = args.source
+    else:
+        datasource = template
     nm = stringToIntList(cfg.get("start_num"))
     numbers = getCfg(args.number, nm)
     pData = args.data
@@ -356,8 +358,12 @@ def gen_File_Arg(args):
 
 if __name__ == '__main__':
     # total arguments
+    cfg = read_ini("config.ini", "DEFAULT")
+    template = cfg.get("defaulttemplate")
+
     parser = argparse.ArgumentParser("Code Generator")
-    parser.add_argument("source", help="File containing data to surround your text list")
+    if not template:
+        parser.add_argument("source", help="File containing data to surround your text list")
     parser.add_argument("-f", "--file", help="gets input from a file then outputs to a file")
     parser.add_argument("-e", "--exclude", help="gets a list from file to exclude items from the first list/clipboard")
     parser.add_argument("-s", "--seperate", help="output into seperate files  expects $data1 to be path",
