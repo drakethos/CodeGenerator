@@ -193,7 +193,7 @@ def get_end_data(line):
     return name
 
 
-def getFixedSection(text, tag, end_tag):
+def getFixedSection(text, tag):
 
     # open and close for the header
     tagO = '<$' + tag + '>'
